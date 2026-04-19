@@ -1,19 +1,18 @@
-[tool.poetry]
+[project]
 name = "neovim-config-build"
 version = "0.1.0"
 description = "Tool for build your Neovim config through CLI!"
-
-authors = [{ name = "Silletr", email = "silletrMain@gmail.com" }]
+readme = "README.md"
 license = { text = "MIT" }
-
+authors = [{ name = "Silletr", email = "silletrMain@gmail.com" }]
 requires-python = ">=3.12"
-dependencies = ["typer (>=0.24.1,<0.25.0)", "vhs (>=1.1.1,<2.0.0)"]
+dependencies = ["typer>=0.24.1,<0.25.0", "vhs>=1.1.1,<2.0.0", "flet (>=0.84.0,<0.85.0)"]
+
+[tool.poetry]
+scripts = { nvim-cfg-build = "neovim-config-build.__main__:app" }
+
 packages = [{ include = "neovim-config-build", from = "src" }]
 
-[tool.poetry.scripts]
-pygit = "neovim-config-build.__main__:app"
-
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
