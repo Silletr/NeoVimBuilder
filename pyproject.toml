@@ -5,8 +5,13 @@ description = "Tool for build your Neovim config through CLI!"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Silletr", email = "silletrMain@gmail.com" }]
-requires-python = ">=3.12"
-dependencies = ["typer>=0.24.1,<0.25.0", "vhs>=1.1.1,<2.0.0", "flet (>=0.84.0,<0.85.0)"]
+requires-python = ">=3.12,<4.0"
+dependencies = [
+  "typer>=0.24.1,<0.25.0",
+  "vhs>=1.1.1,<2.0.0",
+  "flet (>=0.84.0,<0.85.0)",
+  "loguru (>=0.7.3,<0.8.0)",
+]
 
 [tool.poetry]
 scripts = { nvim-cfg-build = "neovim-config-build.__main__:app" }
