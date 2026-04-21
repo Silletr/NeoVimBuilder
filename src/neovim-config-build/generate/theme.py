@@ -14,12 +14,12 @@ from generate.logger import configure_logger
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ┃    EXAMPLE OF TEMPLATE:    ┃
     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-    return {
-        repo,
-        priority = 1000,
-        lazy = false
-        vim.cmd("colorscheme " .. name)
-        end,
+return {
+    repo,
+    priority = 1000,
+    lazy = false
+    vim.cmd("colorscheme " .. name)
+    end,
 }
 """
 
