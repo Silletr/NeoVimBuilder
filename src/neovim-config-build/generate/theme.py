@@ -7,6 +7,7 @@
 
 #  ─────────────────────────── Imports (Will be used in future generation) ────────────────────────────
 from difflib import SequenceMatcher
+from sys import exit
 
 import requests
 
@@ -73,19 +74,19 @@ if req.status_code != 200:
     logger.error(f"Requests.get() got an error! Status code: {req.status_code}")
 
 data = req.json()
-items = data.get("items", [])
+items_to_check = data.get("items", [])
 logger.success(
     f"""
-    Got a theme on Github! Found \n{len(items)} repo's,
-    The {items[0]["full_name"]} is the correct one!
+    Got a theme on Github! Found \n{len(items_to_check)} repo's,
+    The {items_to_check[0]["full_name"]} is the correct one!
     """
 )
 
-if not items:
+if not items_to_check:
     logger.error(f"No repositories found by: {theme_name}")
-    exit()
+    exit(1)
 
-repo = items[0]["full_name"]  # e.g EdenEast/nightfox.nvim
+repo = items_to_check[0]["full_name"]  # e.g EdenEast/nightfox.nvim
 logger.success(f"Found repo: {repo}")
 # especially for me, to remember indexes xD:
 # repo 1   repo 2   repo 3
@@ -102,7 +103,7 @@ else:
     logger.info(f"low match ({score:.2f}), asking user")
     print(f"low match ({score:.2f}), select pls!")
 
-    repo_list = format_repo_list(items, limit=10)
+    repo_list = format_repo_list(items=items_to_check, limit=10)
 
     user_choose = int(
         input(
@@ -116,6 +117,6 @@ else:
         )
     )
 
-    selected_repo = items[user_choose - 1]["full_name"]
+    selected_repo = items_to_check[user_choose - 1]["full_name"]
     logger.success(f"Found repo: {selected_repo}")
     print(f"Got you, then I'll remember - {user_choose} is the correct one!")
