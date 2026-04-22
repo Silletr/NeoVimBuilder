@@ -6,8 +6,11 @@
 
 
 #  ─────────────────────────── Imports (Will be used in future generation) ────────────────────────────
-from generate.logger import configure_logger
+from difflib import SequenceMatcher
+
 import requests
+
+from generate.logger import configure_logger
 
 # Start only from ../ and with "python -m generate.theme"
 
@@ -56,6 +59,13 @@ def format_repo_list(items, limit=3):
     return "\n".join(lines)
 
 
+#    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+#    ┃    find a match between user input and app result    ┃
+#    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+def similarity(origin: str, to_match: str) -> float:
+    return SequenceMatcher(None, origin.lower(), to_match.lower()).ratio()
+
+
 #  ────────────────────────────────────────────────────────────────────────────────────────────────────
 # Search for Repo by User's theme name
 req = requests.get(f"https://api.github.com/search/repositories?q={theme_name}")
@@ -81,25 +91,31 @@ logger.success(f"Found repo: {repo}")
 # repo 1   repo 2   repo 3
 # 0        1         2
 
-if theme_name.lower() not in repo.lower():
-    logger.info(f"{theme_name} is different than {repo}, asking user to choose")
-    print(
-        f"Your {theme_name} is corresponding with other repo's - select needed"
-        "   (printed: first 3 repo):"
-    )
+
+score = similarity(theme_name, repo)
+
+if theme_name.lower() in repo.lower() or score > 0.8:
+    selected_repo = repo
+    logger.success(f"Auto-selected: {repo} (score={score:.2f})")
+    print(repo)
+else:
+    logger.info(f"low match ({score:.2f}), asking user")
+    print(f"low match ({score:.2f}), select pls!")
+
     repo_list = format_repo_list(items, limit=10)
 
     user_choose = int(
         input(
             f"""
-    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃        Repository:         ┃
-    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃        Repository:         ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 {repo_list}
-(Select with number:)
+
 >>> """
         )
     )
+
     selected_repo = items[user_choose - 1]["full_name"]
     logger.success(f"Found repo: {selected_repo}")
     print(f"Got you, then I'll remember - {user_choose} is the correct one!")
