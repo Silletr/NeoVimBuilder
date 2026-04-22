@@ -7,7 +7,7 @@
 
 #  ─────────────────────────── Imports (Will be used in future generation) ────────────────────────────
 from difflib import SequenceMatcher
-from sys import exit
+import sys
 
 import requests
 
@@ -84,7 +84,7 @@ logger.success(
 
 if not items_to_check:
     logger.error(f"No repositories found by: {theme_name}")
-    exit(1)
+    sys.exit(1)
 
 repo = items_to_check[0]["full_name"]  # e.g EdenEast/nightfox.nvim
 logger.success(f"Found repo: {repo}")
@@ -98,7 +98,7 @@ score = similarity(theme_name, repo)
 if theme_name.lower() in repo.lower() or score > 0.8:
     selected_repo = repo
     logger.success(f"Auto-selected: {repo} (score={score:.2f})")
-    print(repo)
+    print(f"Auto-selected: {repo}")
 else:
     logger.info(f"low match ({score:.2f}), asking user")
     print(f"low match ({score:.2f}), select pls!")
