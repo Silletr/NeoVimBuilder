@@ -37,11 +37,9 @@ return {
 #  ────────────────────────────────────────────────────────────────────────────────────────────────────
 file_to_save: str = "theme"
 logger = configure_logger(file_to_save)
-theme_name, colorscheme = tuple(
-    input("Write the theme name and colorscheme - separate with |: ")
-    .strip()
-    .split("|", 1)
-)
+raw = input("Write the theme name and colorscheme - separate with |: ").strip()
+theme_name, colorscheme = (part.strip() for part in raw.split("|", 1))
+
 
 if not theme_name or not colorscheme:
     logger.error("Use the format! \nTheme | Colorscheme")
@@ -69,54 +67,89 @@ def similarity(origin: str, to_match: str) -> float:
 
 #  ────────────────────────────────────────────────────────────────────────────────────────────────────
 # Search for Repo by User's theme name
-req = requests.get(f"https://api.github.com/search/repositories?q={theme_name}")
-if req.status_code != 200:
-    logger.error(f"Requests.get() got an error! Status code: {req.status_code}")
+def fetch_github_repos(theme_name):
+    url = f"https://api.github.com/search/repositories?q={theme_name}"
+    try:
+        req = requests.get(url)
+        logger.success(f"Fetched repositories for: {theme_name}")
+        if req.status_code != 200:
+            logger.error(f"GitHub API request failed! Status code: {req.status_code}")
+            sys.exit(1)
 
-data = req.json()
-items_to_check = data.get("items", [])
-logger.success(
-    f"""
-    Got a theme on Github! Found \n{len(items_to_check)} repo's,
-    The {items_to_check[0]["full_name"]} is the correct one!
-    """
-)
+        data = req.json()
+        items = data.get("items", [])
+        logger.success(f"Found {len(items)} repository(ies) for: {theme_name}")
+        if not items:
+            logger.error(f"No repositories found for: {theme_name}")
+            sys.exit(1)
 
-if not items_to_check:
-    logger.error(f"No repositories found by: {theme_name}")
-    sys.exit(1)
-
-repo = items_to_check[0]["full_name"]  # e.g EdenEast/nightfox.nvim
-logger.success(f"Found repo: {repo}")
-# especially for me, to remember indexes xD:
-# repo 1   repo 2   repo 3
-# 0        1         2
+        return items
+    except Exception as e:
+        logger.error(f"Error fetching GitHub repositories: {e}")
+        sys.exit(1)
 
 
-score = similarity(theme_name, repo)
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-if theme_name.lower() in repo.lower() or score > 0.8:
-    selected_repo = repo
-    logger.success(f"Auto-selected: {repo} (score={score:.2f})")
-    print(f"Auto-selected: {repo}")
-else:
-    logger.info(f"low match ({score:.2f}), asking user")
-    print(f"low match ({score:.2f}), select pls!")
 
-    repo_list = format_repo_list(items=items_to_check, limit=10)
+def pick_best_repo(theme_name, items):
+    repo = items[0]["full_name"]
+    score = similarity(theme_name, repo)
 
-    user_choose = int(
-        input(
-            f"""
+    logger.success(f"Best candidate: {repo} (score={score:.2f})")
+
+    if theme_name.lower() in repo.lower() or score > 0.8:
+        selected_repo = repo
+        logger.success(f"Auto-selected: {selected_repo} (score={score:.2f})")
+        print(f"Auto-selected: {selected_repo}")
+        return selected_repo, theme_name  # repo, colorscheme
+
+    logger.info(f"Low match ({score:.2f}), asking user to choose")
+    print(f"Low match ({score:.2f}), please select:")
+
+    repo_list = format_repo_list(items=items, limit=10)
+
+    try:
+        choice = int(
+            input(
+                f"""
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        Repository:         ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 {repo_list}
 
 >>> """
+            )
         )
-    )
+    except (ValueError, IndexError):
+        logger.error("Invalid input. Please enter a valid number.")
+        sys.exit(1)
 
-    selected_repo = items_to_check[user_choose - 1]["full_name"]
-    logger.success(f"Found repo: {selected_repo}")
-    print(f"Got you, then I'll remember - {user_choose} is the correct one!")
+    selected_repo = items[choice - 1]["full_name"]
+    logger.success(f"User selected: {selected_repo}")
+    print(f"Got you, {choice} is the correct one!")
+    return selected_repo, theme_name  # repo, colorscheme
+
+
+def get_github_theme_repo(theme_name):
+    items = fetch_github_repos(theme_name)
+    return pick_best_repo(theme_name, items)
+
+
+def apply_theme(full_theme_name: str, colorscheme_name: str) -> str:
+    template = f"""return {{
+    {{
+        {full_theme_name},
+        priority = 1000,
+        lazy = false,
+        config = function()
+            vim.cmd("colorscheme " .. {colorscheme_name}  )
+        end
+    }}
+}}"""
+    print(template)
+    return template
+
+
+repo, picked_colorscheme = get_github_theme_repo(theme_name)
+apply_theme(repo, colorscheme)
