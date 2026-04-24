@@ -8,10 +8,11 @@
 #  ─────────────────────────── Imports (Will be used in future generation) ────────────────────────────
 from difflib import SequenceMatcher
 import sys
+from pathlib import Path
 
 import requests
 
-from generate.logger import configure_logger
+from neovim_config_build.generate.logger import configure_logger
 
 # Start only from ../ and with "python -m generate.theme"
 
@@ -34,20 +35,11 @@ return {
 
 """
 
-#  ────────────────────────────────────────────────────────────────────────────────────────────────────
 file_to_save: str = "theme"
 logger = configure_logger(file_to_save)
-raw = input("Write the theme name and colorscheme - separate with |: ").strip()
-theme_name, colorscheme = (part.strip() for part in raw.split("|", 1))
 
 
-if not theme_name or not colorscheme:
-    logger.error("Use the format! \nTheme | Colorscheme")
-
-logger.info(f"User's theme: {theme_name} | User's colorscheme {colorscheme}")
-print(f"Theme name is: {theme_name}, and a colorscheme is {colorscheme}!")
-
-
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────
 #    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 #    ┃    Find a repo with limited value    ┃
 #    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -139,17 +131,48 @@ def get_github_theme_repo(theme_name):
 def apply_theme(full_theme_name: str, colorscheme_name: str) -> str:
     template = f"""return {{
     {{
-        {full_theme_name},
+        '{full_theme_name}',
         priority = 1000,
         lazy = false,
         config = function()
-            vim.cmd("colorscheme " .. {colorscheme_name}  )
+            vim.cmd("colorscheme {colorscheme_name}")
         end
     }}
 }}"""
-    print(template)
     return template
 
 
-repo, picked_colorscheme = get_github_theme_repo(theme_name)
-apply_theme(repo, colorscheme)
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────
+def get_theme_config(theme_name: str, colorscheme: str):
+    """Full pipeline: search repo → pick best → generate config"""
+    repo, _ = get_github_theme_repo(theme_name)
+    return apply_theme(repo, colorscheme)
+
+
+def save_to_config(theme_name: str, theme_code: str):
+    """Create ~/.config/nvim/lua/plugins/{theme_name}.lua"""
+    config_dir = Path.home() / ".config" / "nvim" / "lua" / "plugins"
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = config_dir / f"{theme_name}.lua"
+    file_path.write_text(theme_code, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    file_to_save: str = "theme"
+    logger = configure_logger(file_to_save)
+
+    raw = input("Write the theme name and colorscheme - separate with |: ").strip()
+    parts = [part.strip() for part in raw.split("|", 1)]
+
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        logger.error("Use the format: Theme | Colorscheme")
+        raise SystemExit(1)
+
+    theme_name, colorscheme = parts
+    logger.info(f"User's theme: {theme_name} | User's colorscheme: {colorscheme}")
+
+    theme_code = get_theme_config(theme_name, colorscheme)
+    print(theme_code)
+
+    save_to_config(theme_name, theme_code)
